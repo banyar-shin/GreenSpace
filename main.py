@@ -85,7 +85,7 @@ def generate_plant_image(plant_name):
     return (f"{plant_name}.png")
 
 def upload_to_s3(glb_file):
-    bucket_name = "greenspace"
+    bucket_name = "greenspace-berkeley-hackathon"
     s3.upload_file(glb_file, bucket_name, glb_file)
     glb_url = f"https://{bucket_name}.s3.amazonaws.com/{glb_file}"
     return glb_url
@@ -98,15 +98,8 @@ def process():
     plant_name = process_with_gpt4(text)
     image_path = generate_plant_image(plant_name)
     # glb_file = generate_glb(image_path)
-    # glb_url = upload_to_s3(glb_file)
+    glb_url = upload_to_s3(image_path)
     return jsonify({"plant": plant_name})
 
 if __name__ == '__main__':
     app.run()
-
-# text = "I want to plant an orange tree."
-# plant_name = process_with_gpt4(text)
-# image_path = generate_plant_image(plant_name)
-# # glb_file = generate_glb(image_path)
-# glb_url = upload_to_s3(image_path)
-# # return jsonify({"glb_url": glb_url})
