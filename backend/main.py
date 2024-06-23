@@ -247,7 +247,7 @@ def process():
     text = data["text"]
     plant_name = process_with_gpt4(text)
     image_path = generate_plant_image(plant_name)
-    # generate_3d_model_and_upload_to_s3(image_path, plant_name)
+    generate_3d_model_and_upload_to_s3(image_path, plant_name)
     return jsonify({"plant": plant_name})
 
 if __name__ == '__main__':
