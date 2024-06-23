@@ -103,6 +103,7 @@ def generate_plant_image(plant_name):
 
 def generate_3d_model_and_upload_to_s3(
     image_path,
+    name,
     device="cuda:0",
     pretrained_model_name_or_path="stabilityai/TripoSR",
     chunk_size=8192,
@@ -150,6 +151,8 @@ def generate_3d_model_and_upload_to_s3(
     # Create a temporary directory for output
     temp_dir = "temp_output"
     os.makedirs(temp_dir, exist_ok=True)
+    dir_3d = "3d"
+    os.makedirs(dir_3d, exist_ok=True)
     
     # Run model
     timer.start("Running model")
@@ -171,9 +174,9 @@ def generate_3d_model_and_upload_to_s3(
     timer.end("Extracting mesh")
     
     # Save mesh and texture
-    out_mesh_path = os.path.join("3d", f"{image_path}.{model_save_format}")
+    out_mesh_path = os.path.join(dir_3d, f"{name}.{model_save_format}")
     if bake_texture:
-        out_texture_path = os.path.join(temp_dir, "texture.png")
+        out_texture_path = os.path.join(dir_3d, "texture.png")
         timer.start("Baking texture")
         bake_output = bake_texture(meshes[0], model, scene_codes[0], texture_resolution)
         timer.end("Baking texture")
@@ -198,7 +201,7 @@ def generate_3d_model_and_upload_to_s3(
     # Upload to S3
     timer.start("Uploading to S3")
     try:
-        s3.upload_file(out_mesh_path, bucket_name, f"threed/{image_path}.{model_save_format}")
+        s3.upload_file(out_mesh_path, bucket_name, f"threed/{name}.{model_save_format}")
         if bake_texture:
             s3.upload_file(out_texture_path, bucket_name, "texture.png")
         if render:
@@ -232,7 +235,7 @@ def process():
     plant_name = process_with_gpt4(text)
     image_path = generate_plant_image(plant_name)
     img_url = upload_to_s3(image_path)
-    generate_3d_model_and_upload_to_s3("./Peach Tree.png")
+    generate_3d_model_and_upload_to_s3(image_path, plant_name)
     return jsonify({"plant": plant_name})
 
 if __name__ == '__main__':
