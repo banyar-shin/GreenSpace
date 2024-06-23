@@ -70,13 +70,24 @@ def process_with_gpt4(text):
     )
     response_message_content = response.choices[0].message.content
     response_json = json.loads(response_message_content)
-    filename = 'plant_recommendation.json'
-    with open(filename, 'w') as json_file:
+
+    dir_info = "info"
+    os.makedirs(dir_info, exist_ok=True)
+
+    plant_name = response_json["plant"]["name"]
+
+    info_path = os.path.join(dir_info, f"{plant_name}.json")
+
+    with open(info_path, 'w') as json_file:
         json.dump(response_json, json_file, indent=4)
-    print(f'Response saved to {filename}')
+    print(f'Response saved to {info_path}')
 
-    return response_json["plant"]["name"]
+    folder = "info/"
+    key = folder + os.path.basename(info_path)
+    s3.upload_file(info_path, bucket_name, key)
+    img_url = f"https://{bucket_name}.s3.amazonaws.com/{key}"
 
+    return plant_name
 
 def generate_plant_image(plant_name):
     response = client.images.generate(
@@ -89,17 +100,27 @@ def generate_plant_image(plant_name):
     image_url = response.data[0].url
     print(image_url)
 
+    dir_img = "img"
+    os.makedirs(dir_img, exist_ok=True)
+
+    image_path = os.path.join(dir_img, f"{plant_name}.png")
+
     response = requests.get(image_url, stream=True)
     if response.status_code == 200:
     # Open a local file in binary write mode
-        with open(f"{plant_name}.png", "wb") as file:
+        with open(f"{image_path}", "wb") as file:
             # Write the content of the response to the file
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
         print("Image downloaded successfully")
+
+        folder = "img/"
+        key = folder + os.path.basename(image_path)
+        s3.upload_file(image_path, bucket_name, key)
+        img_url = f"https://{bucket_name}.s3.amazonaws.com/{key}"
     else:
         print(f"Failed to retrieve image. HTTP Status code: {response.status_code}")
-    return (f"{plant_name}.png")
+    return (f"{image_path}")
 
 def generate_3d_model_and_upload_to_s3(
     image_path,
@@ -220,22 +241,13 @@ def generate_3d_model_and_upload_to_s3(
 
     logging.info("3D model generation and S3 upload complete")
 
-def upload_to_s3(file):
-    folder = "img/"
-    key = folder + os.path.basename(file)
-    s3.upload_file(file, bucket_name, key)
-    img_url = f"https://{bucket_name}.s3.amazonaws.com/{key}"
-    return img_url
-
-
 @app.route("/process", methods=["POST"])
 def process():
     data = request.get_json()
     text = data["text"]
     plant_name = process_with_gpt4(text)
     image_path = generate_plant_image(plant_name)
-    img_url = upload_to_s3(image_path)
-    generate_3d_model_and_upload_to_s3(image_path, plant_name)
+    # generate_3d_model_and_upload_to_s3(image_path, plant_name)
     return jsonify({"plant": plant_name})
 
 if __name__ == '__main__':
