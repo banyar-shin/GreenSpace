@@ -74,7 +74,7 @@ s3 = boto3.client(
 
 
 def upload_to_s3(glb_file):
-    bucket_name = "your-bucket-name"
+    bucket_name = "greenspace"
     s3.upload_file(glb_file, bucket_name, glb_file)
     glb_url = f"https://{bucket_name}.s3.amazonaws.com/{glb_file}"
     return glb_url
