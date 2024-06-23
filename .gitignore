@@ -236,3 +236,5 @@ cython_debug/
 # default output directory
 output/
 outputs/
+*.png
+*.json
